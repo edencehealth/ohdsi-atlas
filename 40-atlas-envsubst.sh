@@ -91,7 +91,7 @@ main() {
   # the Dockerfile has to put *something* in the final target location because
   # we're doing "COPY --chown=nginx src dest". That something might as well be
   # the template that we want to fill. this obviates the need for a /templates
-  # directory and keeps thing maybe semi-functional when debugging
+  # directory and keeps things maybe semi-functional when debugging
 
   # shellcheck disable=SC2066
   for target in \

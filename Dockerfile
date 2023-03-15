@@ -1,43 +1,43 @@
 FROM node:current-alpine as builder
 
 # for updates, see: https://github.com/OHDSI/Atlas/releases
-ARG ATLAS_VERSION="2.11.1"
+ARG ATLAS_VERSION="2.12.1"
 
 RUN apk add --no-cache \
     ca-certificates \
     curl \
-  && true
+  ;
 
 WORKDIR /build
 
-RUN set -e \
-  ; get_release() { set -x \
-    && curl -sSL -o /pkg.tgz "https://github.com/OHDSI/Atlas/archive/v${ATLAS_VERSION}.tar.gz" \
-    && tar -xzf /pkg.tgz \
-    && find "Atlas-${ATLAS_VERSION}" -maxdepth 1 -mindepth 1 -exec 'mv' '{}' './' ';' \
-    && rmdir "Atlas-${ATLAS_VERSION}" \
-    && rm /pkg.tgz \
-  ; } \
-  ; get_master() { set -x \
-    && git clone "https://github.com/OHDSI/Atlas.git" "__REPO__" \
-    && find "__REPO__" -maxdepth 1 -mindepth 1 -exec 'mv' '{}' './' ';' \
-    && rmdir "__REPO__" \
-  ; } \
-  ; if [ "$ATLAS_VERSION" = "master" ] \
-  ; then get_master \
-  ; else get_release \
-  ; fi
+RUN set -eux; \
+  get_release() { \
+    curl -sSL -o /pkg.tgz "https://github.com/OHDSI/Atlas/archive/v${ATLAS_VERSION}.tar.gz"; \
+    tar -xzf /pkg.tgz; \
+    find "Atlas-${ATLAS_VERSION}" -maxdepth 1 -mindepth 1 -exec 'mv' '{}' './' ';'; \
+    rmdir "Atlas-${ATLAS_VERSION}"; \
+    rm /pkg.tgz; \
+  }; \
+  get_master() { \
+    git clone --depth 1 "https://github.com/OHDSI/Atlas.git" "__REPO__"; \
+    find "__REPO__" -maxdepth 1 -mindepth 1 -exec 'mv' '{}' './' ';'; \
+    rmdir "__REPO__"; \
+  }; \
+  if [ "$ATLAS_VERSION" = "master" ]; \
+  then get_master; \
+  else get_release; \
+  fi
 
-RUN set -x \
-  && npm install \
-  && npm run build:docker \
-  && npm prune --production
+RUN set -eux; \
+  npm install; \
+  npm run build:docker; \
+  npm prune --production;
 
 # create pre-compressed copies of served assets; but do not keep compressed
 # files that are larger than their uncompressed conterparts
-RUN set -ex \
-  && PROCS="$(grep -c '^processor\t' /proc/cpuinfo)" \
-  && find . \
+RUN set -eux; \
+  PROCS=$(grep -c '^processor\t' /proc/cpuinfo); \
+  find . \
     -type f \
     "(" \
       -name '*.js' \
@@ -53,9 +53,9 @@ RUN set -ex \
     ")" \
     -not -name "config-local.js" \
     -print0 \
-    | xargs -0 -n 1 -P "$PROCS" gzip -9 -kf \
-  && set +x \
-  && find . \
+    | xargs -0 -n 1 -P "$PROCS" gzip -9 -kf; \
+  set +x; \
+  find . \
     -name '*.gz' \
     -print \
     | while read -r gzfile; do \
@@ -64,7 +64,7 @@ RUN set -ex \
       size="$(stat -c '%s' "$dir/$base")"; \
       gzsize="$(stat -c '%s' "$gzfile")"; \
       if [ "$gzsize" -ge "$size" ]; then rm "$gzfile"; fi; \
-    done
+    done;
 
 # clean the build for the next step
 RUN rm -rf \
@@ -77,7 +77,7 @@ FROM nginxinc/nginx-unprivileged:stable-alpine
 LABEL maintainer="edenceHealth <https://edence.health/>"
 
 # verify that the base image is running as the expected user
-RUN set -ex; \
+RUN set -eux; \
   [ "$(id)" = "uid=101(nginx) gid=101(nginx) groups=101(nginx)" ]
 
 # Document root for nginx configuration
