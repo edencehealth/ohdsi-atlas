@@ -1,7 +1,7 @@
 FROM node:current-alpine as builder
 
 # for updates, see: https://github.com/OHDSI/Atlas/releases
-ARG ATLAS_VERSION="2.13.0"
+ARG ATLAS_VERSION="2.14.1"
 
 RUN apk add --no-cache \
     ca-certificates \
