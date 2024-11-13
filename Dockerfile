@@ -1,4 +1,4 @@
-FROM node:current-alpine as builder
+FROM node:current-alpine AS builder
 
 # for updates, see: https://github.com/OHDSI/Atlas/releases
 ARG ATLAS_VERSION="2.14.1"
@@ -33,6 +33,8 @@ RUN set -eux; \
   npm run build:docker; \
   npm prune --production;
 
+COPY max-gzip.sh /bin/
+
 # create pre-compressed copies of served assets; but do not keep compressed
 # files that are larger than their uncompressed conterparts
 RUN set -eux; \
@@ -53,24 +55,14 @@ RUN set -eux; \
     ")" \
     -not -name "config-local.js" \
     -print0 \
-    | xargs -0 -n 1 -P "$PROCS" gzip -9 -kf; \
-  set +x; \
-  find . \
-    -name '*.gz' \
-    -print \
-    | while read -r gzfile; do \
-      dir="$(dirname "$gzfile")"; \
-      base="$(basename "$gzfile" ".gz")"; \
-      size="$(stat -c '%s' "$dir/$base")"; \
-      gzsize="$(stat -c '%s' "$gzfile")"; \
-      if [ "$gzsize" -ge "$size" ]; then rm "$gzfile"; fi; \
-    done;
+    | xargs -0 -r -n 1 -P "$PROCS" max-gzip.sh
 
 # clean the build for the next step
 RUN rm -rf \
     README.md \
     build \
-    package-*
+    package-* \
+    /bin/max-gzip.sh
 
 # Production Nginx image
 FROM nginxinc/nginx-unprivileged:stable-alpine
