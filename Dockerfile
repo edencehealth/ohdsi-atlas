@@ -3,6 +3,7 @@ FROM node:current-alpine AS builder
 # for updates, see: https://github.com/OHDSI/Atlas/releases
 ARG ATLAS_VERSION="2.14.1"
 
+# hadolint ignore=DL3018
 RUN apk add --no-cache \
     ca-certificates \
     curl \
@@ -37,6 +38,7 @@ COPY max-gzip.sh /bin/
 
 # create pre-compressed copies of served assets; but do not keep compressed
 # files that are larger than their uncompressed conterparts
+# hadolint ignore=DL4006
 RUN set -eux; \
   PROCS=$(grep -c '^processor\t' /proc/cpuinfo); \
   find . \
